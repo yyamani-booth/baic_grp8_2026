@@ -1,0 +1,123 @@
+{
+  "_readme": "All simulated AI output for the Liaison prototype lives here. Replace each section with a real AI call later. Sections: trip (Step 1->2), profile (Step 3), itinerary + revisions (Step 4).",
+
+  "trip": {
+    "exampleInput": "I am going on a 10 day trip to Italy across Venice, Florence, and Naples with my mom, dad, and 2 sisters. We're hoping to keep the budget below $4,000 per person including flights. We are targeting early February.",
+    "matchPattern": "italy",
+    "summaryItaly": {
+      "destination": "Italy: Venice, Florence, Naples",
+      "duration": "10 days",
+      "dates": "Early February",
+      "budget": "Under $4,000 per person, flights included",
+      "group": "Mom, Dad, and 2 sisters (you + 4 travelers)",
+      "blurb": "A 10-day Italian circuit from the canals of Venice to Renaissance Florence and ending in Naples, planned for a multigenerational family on a $4,000 per-person budget."
+    },
+    "summaryFallback": {
+      "destination": "Destination from your description",
+      "duration": "Duration from your description",
+      "dates": "Dates from your description",
+      "budget": "Budget from your description",
+      "group": "Your group",
+      "blurb": "(Simulated) The AI would summarize your trip here. Try the Italy example for the full happy path."
+    }
+  },
+
+  "profile": {
+    "examples": {
+      "organizer": "I'm 34 and I love food markets, art museums and local history. I don't have any allergies. I can walk a lot. My budget is $4,000 including flights.",
+      "dad": "I like relaxing vacations. I don't eat pork or red meats. I don't drink alcohol. I can walk maybe 30 minutes before I need to rest.",
+      "sister": "I enjoy cultural and historical sites. I don't enjoy nightlife too much. I like nature as well. I don't eat pork or drink alcohol. I am able to walk a lot.",
+      "default": "I like cultural sites and good food. I'm 40. I can walk a lot. My budget is $4,000."
+    },
+    "rules": [
+      { "field": "Diet", "pattern": "\\b(don't|do not|no|avoid|never)\\b[^.]*\\bpork\\b", "value": "No pork", "hard": true },
+      { "field": "Diet", "pattern": "\\b(don't|do not|no|avoid|never)\\b[^.]*\\bred meats?\\b", "value": "No red meat", "hard": true },
+      { "field": "Diet", "pattern": "\\b(don't|do not|no|avoid|never)\\b[^.]*\\b(alcohol|wine|beer)\\b", "value": "No alcohol", "hard": true },
+      { "field": "Diet", "pattern": "\\b(vegetarian|vegan|halal|kosher|gluten[- ]free)\\b", "value": "{1}", "hard": true },
+      { "field": "Allergies", "pattern": "allergic to ([a-z, ]+)", "value": "Allergic to {1}", "hard": true },
+      { "field": "Mobility", "pattern": "walk[^.]*?(\\d+)\\s*minutes", "value": "Needs rest after ~{1} min of walking", "hard": true },
+      { "field": "Mobility", "pattern": "\\b(wheelchair|cane|limited mobility)\\b", "value": "{1}", "hard": true },
+      { "field": "Mobility", "pattern": "(able to|can) walk a lot", "value": "Can walk a lot", "hard": false },
+      { "field": "Age", "pattern": "\\b(?:i'm|i am|age)\\s*(\\d{2})\\b", "value": "{1}", "hard": false },
+      { "field": "Budget", "pattern": "\\$\\s?([\\d,]+)", "value": "${1}", "hard": false },
+      { "field": "Interests", "pattern": "\\b(cultural|historical|history)\\b", "value": "Cultural & historical sites", "hard": false },
+      { "field": "Interests", "pattern": "\\bnature\\b", "value": "Nature", "hard": false },
+      { "field": "Interests", "pattern": "\\brelax", "value": "Relaxing pace", "hard": false },
+      { "field": "Interests", "pattern": "\\b(food|markets?)\\b", "value": "Food", "hard": false },
+      { "field": "Interests", "pattern": "\\bart\\b", "value": "Art", "hard": false },
+      { "field": "Dislikes", "pattern": "\\b(don't|do not)\\b[^.]*\\b(enjoy|like)\\b[^.]*\\bnightlife\\b", "value": "Nightlife", "hard": false }
+    ],
+    "ambiguities": [
+      { "pattern": "red meats?", "question": "You mentioned avoiding red meat. Does that include lamb and cured meats like prosciutto or salami?" },
+      { "missing": "Budget", "question": "No budget was mentioned. Is the group target of under $4,000 per person (flights included) OK for you?" },
+      { "missing": "Mobility", "question": "How much walking per day is comfortable for you?" }
+    ]
+  },
+
+  "itinerary": {
+    "hotels": {
+      "Venice": "Hotel Laguna (sample)",
+      "Florence": "Hotel Arno (sample)",
+      "Naples": "Hotel Lungomare (sample)"
+    },
+    "days": [
+      { "day": 1, "city": "Venice", "items": [
+        { "id": "d1-m", "slot": "Morning", "text": "Arrive at Marco Polo Airport; water-bus transfer to Hotel Laguna" },
+        { "id": "d1-a", "slot": "Afternoon", "text": "Gondola ride along the Grand Canal" },
+        { "id": "d1-e", "slot": "Evening", "text": "Seafood dinner in Dorsoduro (pork-free, alcohol-free menu options)" } ] },
+      { "day": 2, "city": "Venice", "items": [
+        { "id": "d2-m", "slot": "Morning", "text": "St. Mark's Basilica and Doge's Palace" },
+        { "id": "d2-a", "slot": "Afternoon", "text": "Vaporetto to Murano (glass workshop) and Burano" },
+        { "id": "d2-e", "slot": "Evening", "text": "Quiet dinner near the Rialto Bridge" } ] },
+      { "day": 3, "city": "Venice", "items": [
+        { "id": "d3-m", "slot": "Morning", "text": "Gallerie dell'Accademia" },
+        { "id": "d3-a", "slot": "Afternoon", "text": "3-hour walking tour of Cannaregio and Dorsoduro canals",
+          "replacements": {
+            "mobility": "Private water-taxi tour of the Grand Canal with seated stops (under 10 minutes of walking)",
+            "default": "Private water-taxi tour of the Grand Canal with seated stops (under 10 minutes of walking)" } },
+        { "id": "d3-e", "slot": "Evening", "text": "Cicchetti dinner (non-pork, non-alcohol options)" } ] },
+      { "day": 4, "city": "Florence", "items": [
+        { "id": "d4-m", "slot": "Morning", "text": "High-speed train Venice to Florence; check in at Hotel Arno" },
+        { "id": "d4-a", "slot": "Afternoon", "text": "Duomo, Baptistery and Giotto's Bell Tower" },
+        { "id": "d4-e", "slot": "Evening", "text": "Dinner in the Oltrarno district" } ] },
+      { "day": 5, "city": "Florence", "items": [
+        { "id": "d5-m", "slot": "Morning", "text": "Uffizi Gallery" },
+        { "id": "d5-a", "slot": "Afternoon", "text": "Ponte Vecchio and Palazzo Pitti" },
+        { "id": "d5-e", "slot": "Evening", "text": "Night out in Florence's nightlife district (bars and live music)",
+          "replacements": {
+            "nightlife": "Sunset at Boboli Gardens followed by a quiet dinner",
+            "default": "Sunset at Boboli Gardens followed by a quiet dinner" } } ] },
+      { "day": 6, "city": "Florence", "items": [
+        { "id": "d6-m", "slot": "Morning", "text": "Day trip by train to Siena" },
+        { "id": "d6-a", "slot": "Afternoon", "text": "Siena Cathedral and Piazza del Campo" },
+        { "id": "d6-e", "slot": "Evening", "text": "Return to Florence; relaxed dinner" } ] },
+      { "day": 7, "city": "Naples", "items": [
+        { "id": "d7-m", "slot": "Morning", "text": "High-speed train Florence to Naples; check in at Hotel Lungomare" },
+        { "id": "d7-a", "slot": "Afternoon", "text": "Spaccanapoli and the historic center" },
+        { "id": "d7-e", "slot": "Evening", "text": "Neapolitan pizza dinner (margherita and marinara)" } ] },
+      { "day": 8, "city": "Naples", "items": [
+        { "id": "d8-m", "slot": "Morning", "text": "Hike the Mount Vesuvius crater trail (about 3 hours, steep)",
+          "replacements": {
+            "mobility": "Shuttle to the Vesuvius upper lot with a short 10-minute walk to the crater-rim viewpoint",
+            "default": "Shuttle to the Vesuvius upper lot with a short 10-minute walk to the crater-rim viewpoint" } },
+        { "id": "d8-a", "slot": "Afternoon", "text": "Lunch in Ercolano and a visit to the Herculaneum ruins" },
+        { "id": "d8-e", "slot": "Evening", "text": "Seafront dinner on the Lungomare" } ] },
+      { "day": 9, "city": "Naples", "items": [
+        { "id": "d9-m", "slot": "Morning", "text": "Pompeii archaeological site" },
+        { "id": "d9-a", "slot": "Afternoon", "text": "National Archaeological Museum of Naples" },
+        { "id": "d9-e", "slot": "Evening", "text": "Farewell family dinner" } ] },
+      { "day": 10, "city": "Naples", "items": [
+        { "id": "d10-m", "slot": "Morning", "text": "Castel dell'Ovo and harbor stroll" },
+        { "id": "d10-a", "slot": "Afternoon", "text": "Transfer to Naples airport" },
+        { "id": "d10-e", "slot": "Evening", "text": "Flight home" } ] }
+    ],
+    "reasonCategories": [
+      { "id": "mobility", "keywords": ["walk", "tired", "rest", "far", "hike", "steep", "long", "mobility", "stairs", "exhaust"] },
+      { "id": "nightlife", "keywords": ["nightlife", "late", "bar", "club", "loud", "crowd", "party"] },
+      { "id": "budget", "keywords": ["expensive", "cost", "budget", "price", "$", "cheap"] },
+      { "id": "diet", "keywords": ["pork", "meat", "alcohol", "wine", "allerg", "diet", "food"] }
+    ],
+    "genericReplacement": "Flexible free block (replaces: \"{item}\"), adjusted for: \"{reason}\"",
+    "revisionNote": "Revised from \"{item}\" because: {reason}"
+  }
+}

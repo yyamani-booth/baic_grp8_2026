@@ -1,0 +1,15 @@
+Each group must submit its MVP by uploading here a working, publicly accessible URL no later than 11:59 PM CT on Monday, November 30 (the day before the final presentations).
+
+Important requirements:
+
+Deadline: Late submissions will be heavily penalized.
+
+Accessibility: Test your link to ensure I can access and use your MVP without requesting access or permissions. If I cannot access your MVP and need to reach out to you, your group will be heavily penalized.
+
+Files and instructions: if to test your MVP I need to be aware of any special instructions or use any special inputs that I can't easily generate, upload instructions or test inputs as part of your submission. 
+Hosting: Your MVP must be hosted in the cloud, not locally on your laptop (if you host it on your laptop I will not be able to access the application unless your computer is running and online). Claude Code integrates with Railway, but you are free to use any cloud hosting service (Claude Code will help you with that).
+
+Cost: A free hosting plan (or the cheapest available option) should be sufficient, as your app will only receive the traffic I generate when I test it. 
+
+Please make sure your MVP is fully deployed, accessible, and working before submitting the link.
+

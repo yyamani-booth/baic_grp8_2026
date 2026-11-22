@@ -2,58 +2,205 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Liaison (prototype)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Liaison: group trip planner (app demo)</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%23e8a33d'/%3E%3Ctext x='50' y='68' font-size='56' text-anchor='middle'%3E✈%3C/text%3E%3C/svg%3E">
 <style>
-  body { font-family: system-ui, sans-serif; margin: 0; background: #f5f6f8; color: #222; }
-  header { background: #1f3a5f; color: #fff; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; }
-  header h1 { margin: 0; font-size: 20px; }
-  #stepper span { margin-left: 14px; opacity: .5; }
-  #stepper span.on { opacity: 1; font-weight: bold; text-decoration: underline; }
-  #layout { display: flex; gap: 16px; padding: 16px; align-items: flex-start; }
-  #main { flex: 1; background: #fff; border-radius: 8px; padding: 20px; min-width: 0; }
-  #side { width: 340px; background: #fff; border-radius: 8px; padding: 14px; position: sticky; top: 8px; }
-  #side h3 { margin: 0 0 6px; font-size: 15px; }
-  #log { max-height: 55vh; overflow-y: auto; font-size: 12px; font-family: ui-monospace, monospace; border-top: 1px solid #ddd; }
-  #log div { padding: 3px 0; border-bottom: 1px dotted #ddd; }
-  .rej { color: #b3261e; } .acc { color: #1b7a3a; }
-  textarea, input[type=text] { width: 100%; box-sizing: border-box; padding: 8px; font: inherit; border: 1px solid #aaa; border-radius: 6px; }
-  textarea { min-height: 90px; }
-  button { padding: 7px 14px; border: 1px solid #1f3a5f; background: #1f3a5f; color: #fff; border-radius: 6px; cursor: pointer; font: inherit; }
-  button.sec { background: #fff; color: #1f3a5f; }
-  button:disabled { opacity: .4; cursor: default; }
-  .row { display: flex; gap: 8px; align-items: center; margin: 10px 0; flex-wrap: wrap; }
-  .card { border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin: 10px 0; background: #fafbfc; }
-  .tabs button { margin-right: 6px; }
-  .tabs button.active { background: #e8a33d; border-color: #e8a33d; color: #000; }
-  .chip { display: inline-block; padding: 2px 8px; border-radius: 10px; background: #e3e8ef; font-size: 12px; margin: 2px; }
+  :root { --navy: #1f3a5f; --amber: #e8a33d; --ink: #1d2433; --muted: #6b7280; --line: #e9ecf1; --red: #c0392b; --green: #1b7a3a; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--ink);
+    background: radial-gradient(1200px 700px at 85% 110%, #e8a33d55, transparent 60%), linear-gradient(135deg, #172d4a 0%, #1f3a5f 45%, #2c5282 100%);
+    min-height: 100vh; display: flex; align-items: center; justify-content: center; gap: 72px; padding: 28px; }
+  button { font: inherit; cursor: pointer; }
+  button:disabled { cursor: default; }
+
+  /* ---------- desktop demo page ---------- */
+  .intro { max-width: 430px; color: #fff; }
+  .brand { font-weight: 800; font-size: 20px; letter-spacing: .02em; display: flex; align-items: center; gap: 10px; }
+  .brand .logo { width: 34px; height: 34px; border-radius: 10px; background: var(--amber); color: var(--navy); display: grid; place-items: center; font-size: 18px; }
+  .intro h1 { font-size: 40px; line-height: 1.1; margin: 22px 0 14px; }
+  .intro p { color: #d7e1ee; line-height: 1.55; font-size: 16px; }
+  .try { background: #ffffff14; border: 1px solid #ffffff2a; border-radius: 16px; padding: 16px 18px; margin: 22px 0; }
+  .try ol { margin: 8px 0 0; padding-left: 20px; color: #e8eef6; line-height: 1.7; font-size: 15px; }
+  .fine { font-size: 13px !important; color: #aebcd0 !important; }
+
+  /* ---------- phone frame (laptop) / full screen (phone) ---------- */
+  .phone { position: relative; width: 390px; height: min(820px, calc(100vh - 56px)); background: #fff; border-radius: 48px;
+    border: 12px solid #0d1015; box-shadow: 0 30px 80px #0008, inset 0 0 0 2px #2a2f38; overflow: hidden; overflow: clip; display: flex; flex-direction: column; flex: none; }
+  .phone::before { content: ""; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 118px; height: 26px; background: #0d1015; border-radius: 0 0 16px 16px; z-index: 40; }
+  .appbar { display: flex; align-items: center; gap: 4px; padding: 32px 8px 2px; background: #fff; }
+  .appbar h1 { flex: 1; margin: 0; text-align: center; font-size: 17px; font-weight: 700; }
+  .iconbtn { width: 42px; height: 42px; border: none; background: none; border-radius: 50%; color: var(--navy); font-size: 26px; line-height: 1; display: grid; place-items: center; }
+  .iconbtn:active { background: #eef1f5; }
+  .iconbtn.info { font-size: 20px; }
+  #stepper { display: flex; gap: 5px; padding: 6px 18px 12px; background: #fff; border-bottom: 1px solid var(--line); }
+  #stepper span { flex: 1; height: 4px; border-radius: 2px; background: #e3e7ed; transition: background .2s; }
+  #stepper span.done { background: var(--navy); }
+  #stepper span.on { background: var(--amber); }
+  #main { flex: 1; overflow-y: auto; padding: 16px; background: #f5f6f9; -webkit-overflow-scrolling: touch; }
+  #actions { padding: 12px 16px 18px; background: #fff; border-top: 1px solid var(--line); }
+  #actions:empty { display: none; }
+
+  @media (max-width: 960px) { .intro { display: none; } }
+  @media (max-width: 640px) {
+    body { display: block; padding: 0; background: #fff; }
+    .phone { width: 100%; height: 100vh; height: 100dvh; border: none; border-radius: 0; box-shadow: none; }
+    .phone::before { display: none; }
+    .appbar { padding-top: calc(8px + env(safe-area-inset-top)); }
+    #actions { padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
+  }
+
+  /* ---------- app components ---------- */
+  textarea, input[type=text] { width: 100%; font: inherit; font-size: 16px; padding: 12px 14px; border: 1px solid #d5dae1; border-radius: 14px; background: #fff; color: var(--ink); }
+  textarea { resize: none; line-height: 1.4; }
+  textarea:focus, input[type=text]:focus { outline: 2px solid #1f3a5f33; border-color: var(--navy); }
+  .primary { width: 100%; padding: 15px; border: none; border-radius: 16px; background: var(--navy); color: #fff; font-size: 16px; font-weight: 650; }
+  .primary:disabled { background: #c3cad4; }
+  .secondary { width: 100%; padding: 13px; border-radius: 14px; background: #fff; color: var(--navy); border: 1.5px solid var(--navy); font-size: 15px; font-weight: 600; margin-top: 10px; }
+  .secondary:disabled { opacity: .45; }
+  .small-primary { padding: 0 18px; border: none; border-radius: 14px; background: var(--navy); color: #fff; font-weight: 600; font-size: 15px; }
+  .chip-btn { border: 1px dashed #b4bfcd; background: #fff; color: var(--navy); border-radius: 999px; padding: 8px 13px; font-size: 14px; margin-top: 10px; white-space: nowrap; }
+  .inline { display: flex; gap: 8px; align-items: stretch; margin-top: 10px; }
+  .inline input { flex: 1; min-width: 0; }
+  .inline .secondary, .inline .chip-btn { margin-top: 0; }
+  .grow { flex: 1; min-width: 0; }
+  .card { background: #fff; border-radius: 18px; padding: 14px 16px; margin-bottom: 12px; box-shadow: 0 1px 2px #0000000f; }
+  .card-title { font-weight: 700; font-size: 16px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 13px; }
+  .label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 18px 4px 8px; display: block; }
+  .hero { text-align: center; padding: 10px 6px 4px; }
+  .hero-emoji { font-size: 46px; }
+  .hero h2 { margin: 8px 0 6px; font-size: 23px; }
+  .hero p { margin: 0 0 6px; line-height: 1.45; }
+  .kv { display: flex; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 15px; }
+  .kv:first-of-type { margin-top: 8px; }
+  .kv-i { width: 22px; text-align: center; flex: none; }
+  .kv-l { font-size: 12px; color: var(--muted); }
+  .person { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+  .person:first-child { border-top: none; }
+  .avatar { width: 36px; height: 36px; border-radius: 50%; background: #dce5f0; color: var(--navy); display: grid; place-items: center; font-weight: 700; flex: none; }
+  .pill { font-size: 12px; padding: 3px 9px; border-radius: 999px; background: #eef1f5; color: #3f4754; white-space: nowrap; }
+  .pill.ok { background: #e2f3e7; color: var(--green); }
+  .pill.wait { background: #fff2dc; color: #8a5a00; }
+  .pill.warnp { background: #fdecea; color: #8a1c10; }
+  .segs { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 6px; scrollbar-width: none; }
+  .seg { flex: none; padding: 8px 15px; border-radius: 999px; border: 1px solid #d5dae1; background: #fff; font-size: 14px; color: var(--ink); }
+  .seg.on { background: var(--navy); border-color: var(--navy); color: #fff; }
+  .demo-note { font-size: 12px; color: #8a5a00; background: #fff2dc; border-radius: 10px; padding: 7px 10px; margin-bottom: 10px; }
+  .h2 { font-size: 21px; margin: 12px 0 4px; }
+  .chip { display: inline-block; padding: 3px 9px; border-radius: 999px; background: #e6ebf1; font-size: 12px; margin: 2px 2px 2px 0; }
   .chip.hard { background: #fde1df; color: #8a1c14; }
-  .day h3 { margin: 18px 0 6px; border-bottom: 2px solid #1f3a5f; }
-  .item { display: flex; gap: 10px; padding: 8px; border-bottom: 1px solid #eee; align-items: flex-start; }
-  .item.final { background: #eef8f0; }
-  .item .txt { flex: 1; }
-  .item .slot { font-weight: bold; }
-  .item .note { font-size: 12px; color: #7a5200; }
-  .item .warn { font-size: 13px; color: #8a1c10; background: #fdecea; border-left: 3px solid #c0392b; padding: 4px 8px; margin: 4px 0; }
-  .warnbox { background: #fdecea; border-color: #c0392b; }
-  .votes { font-size: 12px; color: #555; }
-  .small { font-size: 12px; color: #666; }
-  .ok { color: #1b7a3a; font-weight: bold; }
+  .field { display: flex; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 14px; align-items: baseline; }
+  .field b { width: 74px; flex: none; font-size: 13px; color: #3f4754; }
+  .q-card { background: #fff8ea; border: 1px solid #f1d7a2; }
+  .q-card input { margin-top: 8px; }
+  .hint { font-size: 13px; color: var(--muted); text-align: center; margin-bottom: 9px; }
+  .bar { height: 6px; background: #eef1f5; border-radius: 3px; overflow: hidden; margin-top: 8px; }
+  .bar span { display: block; height: 100%; background: var(--green); border-radius: 3px; transition: width .3s; }
+  .row-between { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .warn-card { background: #fdecea; color: #7d1a0f; font-size: 14px; line-height: 1.4; }
+  .ok-card { background: #e2f3e7; color: #14532d; font-size: 14px; line-height: 1.4; }
+  .success { background: #e2f3e7; color: #14532d; }
+  .daychips { display: flex; gap: 6px; overflow-x: auto; margin: 0 -16px 10px; padding: 2px 16px 4px; scrollbar-width: none; }
+  .daychip { flex: none; padding: 7px 13px; border-radius: 999px; border: 1px solid #d5dae1; background: #fff; font-size: 13px; color: var(--ink); }
+  .daychip.w { border-color: #e9a59c; color: #8a1c10; }
+  .daychip.done { border-color: #9ccfab; color: var(--green); }
+  details.day { background: #fff; border-radius: 18px; margin-bottom: 12px; box-shadow: 0 1px 2px #0000000f; overflow: hidden; scroll-margin-top: 6px; }
+  details.day summary { list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 14px 16px; cursor: pointer; }
+  details.day summary::-webkit-details-marker { display: none; }
+  .day-t { font-weight: 700; font-size: 16px; }
+  .day-meta { display: flex; gap: 6px; align-items: center; }
+  .chev { color: #9aa3af; font-size: 20px; transition: transform .2s; }
+  details.day[open] .chev { transform: rotate(90deg); }
+  .item { padding: 13px 16px; border-top: 1px solid var(--line); }
+  .item.final { background: #f3faf5; }
+  .slot { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .txt { margin: 4px 0 6px; font-size: 15px; line-height: 1.42; }
+  .warn { font-size: 13px; line-height: 1.4; color: #7d1a0f; background: #fdecea; border-left: 3px solid var(--red); padding: 7px 9px; border-radius: 8px; margin: 6px 0; }
+  .note { font-size: 12px; color: #7a5200; margin: 4px 0; }
+  .votes { display: flex; flex-wrap: wrap; gap: 5px; margin: 7px 0 2px; }
+  .vote { font-size: 11px; background: #eef1f5; border-radius: 999px; padding: 2px 8px; color: #4b5563; }
+  .vote i { font-style: normal; margin-left: 3px; }
+  .vote.a { background: #e2f3e7; color: var(--green); }
+  .vote.r { background: #fdecea; color: var(--red); }
+  .vote-btns { display: flex; gap: 8px; margin-top: 8px; }
+  .acc-btn, .rej-btn { flex: 1; padding: 10px; border-radius: 12px; font-size: 15px; font-weight: 600; background: #fff; border: 1.5px solid #d5dae1; }
+  .acc-btn { color: var(--green); }
+  .rej-btn { color: var(--red); }
+  .acc-btn.on { background: #e2f3e7; border-color: var(--green); }
+  .rej-btn.on { background: #fdecea; border-color: var(--red); }
+  .agreed { font-size: 13px; color: var(--green); font-weight: 600; margin-top: 6px; }
+  .rej { color: #b3261e; } .acc { color: #1b7a3a; } .ok { color: #1b7a3a; font-weight: bold; }
+
+  /* ---------- behind-the-scenes sheet, loading screen, toast ---------- */
+  .sheet-backdrop { position: absolute; inset: 0; background: #0006; opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 20; }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; max-height: 78%; background: #fff; border-radius: 22px 22px 0 0; transform: translateY(105%);
+    transition: transform .25s ease; z-index: 21; display: flex; flex-direction: column; padding: 10px 18px 20px; }
+  .phone.sheet-open .sheet { transform: none; }
+  .phone.sheet-open .sheet-backdrop { opacity: 1; pointer-events: auto; }
+  .grabber { width: 40px; height: 5px; border-radius: 3px; background: #d5dae1; margin: 0 auto 12px; }
+  .sheet h3 { margin: 12px 0 6px; font-size: 14px; }
+  #mode { font-size: 12px; color: var(--muted); }
+  #status { font-size: 13px; color: #3f4754; line-height: 1.5; }
+  #log { overflow-y: auto; font-size: 11px; font-family: ui-monospace, Menlo, monospace; flex: 1; min-height: 60px; border-top: 1px solid var(--line); }
+  #log div { padding: 4px 0; border-bottom: 1px dotted #e1e4e8; }
+  .busy { position: absolute; inset: 0; background: #ffffffeb; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 14px; z-index: 15; text-align: center; padding: 36px; }
+  body.is-busy .busy { display: flex; }
+  .busy b { font-size: 17px; }
+  .spinner { width: 44px; height: 44px; border: 4px solid #dce5f0; border-top-color: var(--navy); border-radius: 50%; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #toast { position: absolute; left: 50%; bottom: 110px; transform: translate(-50%, 16px); background: #1d2433; color: #fff; padding: 11px 16px; border-radius: 14px;
+    font-size: 14px; opacity: 0; transition: opacity .2s, transform .2s; z-index: 30; pointer-events: none; width: max-content; max-width: 86%; text-align: center; }
+  #toast.show { opacity: 1; transform: translate(-50%, 0); }
 </style>
 </head>
 <body>
-<header>
-  <h1>Liaison <span class="small" style="color:#cde" id="mode">prototype: simulated AI</span></h1>
+
+<section class="intro">
+  <div class="brand"><span class="logo">✈</span> Liaison</div>
+  <h1>One trip plan that works for the whole group.</h1>
+  <p>Everyone describes what they need in their own words: diets, walking limits, interests, budget. Liaison's AI builds a single day-by-day itinerary
+    for the group, flags anything that might clash with someone's limits, and the plan is final only when everyone has accepted it.</p>
+  <div class="try">
+    <b>Try the app demo →</b>
+    <ol>
+      <li>Tap <b>✨ Use example</b>, then <b>Continue</b>.</li>
+      <li>Add an email like <i>dad@test.com</i>, then continue.</li>
+      <li>For each traveler: <b>✨ Fill example</b> → <b>Build my profile</b> → <b>Confirm profile</b>.</li>
+      <li><b>Generate itinerary</b> (live AI, up to a minute), then accept or reject items.</li>
+    </ol>
+  </div>
+  <p class="fine">Interactive prototype of the Liaison mobile app. In this demo you play every traveler from one screen.
+    Open this page on your phone to see the app full-screen. Tap ⓘ in the app to see what happens behind the scenes.</p>
+</section>
+
+<main class="phone" id="phone">
+  <div class="appbar">
+    <button class="iconbtn" id="back" onclick="goBack()" aria-label="Back">‹</button>
+    <h1 id="apptitle">Liaison</h1>
+    <button class="iconbtn info" onclick="toggleSheet()" aria-label="Behind the scenes">ⓘ</button>
+  </div>
   <div id="stepper"></div>
-</header>
-<div id="layout">
   <div id="main">Loading…</div>
-  <div id="side">
+  <div id="actions"></div>
+
+  <div class="busy"><div class="spinner"></div><b>Building your group's itinerary…</b>
+    <span class="muted small">Balancing everyone's needs, then double-checking each item for diet and walking conflicts. This can take up to a minute.</span></div>
+  <div class="sheet-backdrop" onclick="toggleSheet(false)"></div>
+  <div class="sheet">
+    <div class="grabber"></div>
+    <div class="row-between"><b>Behind the scenes</b><button class="iconbtn" style="font-size:20px" onclick="toggleSheet(false)" aria-label="Close">✕</button></div>
+    <div id="mode">prototype: simulated AI</div>
     <h3>Status</h3>
-    <div id="status" class="small"></div>
-    <h3 style="margin-top:12px">Captured feedback &amp; action log</h3>
+    <div id="status"></div>
+    <h3>Captured feedback &amp; action log</h3>
     <div id="log"></div>
   </div>
-</div>
+  <div id="toast"></div>
+</main>
+
 <script src="app.js"></script>
 </body>
 </html>

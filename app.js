@@ -187,7 +187,7 @@ const OPT = {
 const SINGLE = { walk: 1, age: 1, budget: 1 };
 const EXCLUSIVE = { diet: 'No restrictions', allergies: 'No allergies' };
 const HARD_WALK = { 'Need a rest every ~30 min': 'Needs rest after ~30 min of walking', 'Short walks only': 'Short walks only', 'Wheelchair / step-free only': 'Wheelchair / step-free access only' };
-const REQUIRED = { walk: 'walking', diet: 'diet', allergies: 'allergies' };
+const REQUIRED = { diet: 'diet', allergies: 'allergies', walk: 'walking' };
 const PRESETS = { // demo "Fill example" answers
   organizer: { sel: { age: '18–34', walk: 'All day, no problem', diet: ['No restrictions'], allergies: ['No allergies'], interests: ['Food & markets', 'Art & museums', 'History & culture'], budget: 'Group budget is fine' }, text: '' },
   dad: { sel: { age: '55–69', walk: 'Need a rest every ~30 min', diet: ['No pork', 'No red meat', 'No alcohol'], allergies: ['No allergies'], interests: ['Relaxing pace', 'History & culture'], budget: 'Group budget is fine' }, text: 'I prefer a relaxed pace with time to sit down between sights.' },
@@ -235,13 +235,13 @@ function step3() {
     <div class="card-head" style="align-items:flex-start"><h2 class="h2">${t.organizer ? 'Tell us about you' : `Hi ${esc(t.name)}, tell us about you`}</h2>
       <button class="demo-btn" onclick="fillProfile()">${ic('spark', 14)} Fill example</button></div>
     <p class="lead">Tap everything that applies. The required ones keep the plan safe for you.</p>
-    ${sec('walk', 'How much can you walk?', 'feet', '', `<div class="opts" style="margin-top:8px"><button class="opt ${s.stairs ? 'on' : ''}" onclick="tog('stairs')">${s.stairs ? ic('check', 13, 3) : ''}Avoid stairs &amp; steep hills</button></div>`)}
+    ${sec('age', 'Age', 'user', '')}
+    ${sec('budget', 'Budget', 'wallet', '')}
     ${sec('diet', 'What do you eat?', 'food', 'Pick all that apply.')}
     ${sec('allergies', 'Any food allergies?', 'alert', '')}
     ${sec('interests', 'What do you enjoy?', 'heart', '')}
+    ${sec('walk', 'How much can you walk?', 'feet', '', `<div class="opts" style="margin-top:8px"><button class="opt ${s.stairs ? 'on' : ''}" onclick="tog('stairs')">${s.stairs ? ic('check', 13, 3) : ''}Avoid stairs &amp; steep hills</button></div>`)}
     ${sec('dislikes', 'Anything to avoid?', 'thumbdown', '')}
-    ${sec('age', 'Age', 'user', '')}
-    ${sec('budget', 'Budget', 'wallet', '')}
     <div class="qsec"><div class="qhead">${ic('help', 16)}<b>Anything else we should know?</b><span class="optl">Optional</span></div>
       <textarea id="ptext" placeholder="e.g. a bad knee, a medical need, a must-see, or 'I try not to eat pork'. Liaison's AI reads this as you wrote it." oninput="t_text(this.value); autoGrow(this)">${esc(t.text)}</textarea></div>
   </div>

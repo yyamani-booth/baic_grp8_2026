@@ -25,19 +25,6 @@ function log(msg, cls = '') {
 function aiTripSummary(text) { // AI: Step 1 -> trip summary
   return new RegExp(R.trip.matchPattern, 'i').test(text) ? R.trip.summaryItaly : R.trip.summaryFallback;
 }
-function aiParseProfile(text) { // AI: free text -> structured profile + ambiguities
-  const p = { Diet: [], Allergies: [], Mobility: [], Age: [], Budget: [], Interests: [], Dislikes: [], hard: [] };
-  for (const r of R.profile.rules) {
-    const m = text.match(new RegExp(r.pattern, 'i'));
-    if (!m) continue;
-    const v = r.value.replace('{1}', m[1] || '');
-    if (!p[r.field].includes(v)) p[r.field].push(v);
-    if (r.hard && !p.hard.includes(v)) p.hard.push(v);
-  }
-  const questions = R.profile.ambiguities.filter(a => a.pattern ? new RegExp(a.pattern, 'i').test(text) : !p[a.missing].length)
-    .map(a => a.question);
-  return { profile: p, questions };
-}
 async function aiGenerateItinerary() { // AI: trip + profiles -> full itinerary (REAL via backend when CFG.mode === 'real')
   const fresh = i => ({ ...i, note: '', votes: {}, final: false });
   if (CFG.mode !== 'real') {
@@ -187,53 +174,100 @@ function copyLink() { S.linkShown = true; navigator.clipboard?.writeText('https:
 function guestOpensLink() { addInvitee('Guest ' + (++S.guests), ''); render(); }
 function toStep3() { S.active = 0; S.step = 3; render(); }
 
+// ---------- traveler profile: structured options (no AI parsing step) ----------
+const OPT = {
+  walk: ['All day, no problem', 'A few hours with breaks', 'Need a rest every ~30 min', 'Short walks only', 'Wheelchair / step-free only'],
+  diet: ['No restrictions', 'No pork', 'No red meat', 'No alcohol', 'Vegetarian', 'Vegan', 'Pescatarian', 'Halal', 'Kosher', 'Gluten-free'],
+  allergies: ['No allergies', 'Peanuts', 'Tree nuts', 'Shellfish', 'Fish', 'Dairy', 'Eggs', 'Gluten / wheat', 'Sesame'],
+  interests: ['Food & markets', 'Art & museums', 'History & culture', 'Nature & outdoors', 'Beaches', 'Music & shows', 'Shopping', 'Nightlife', 'Relaxing pace', 'Kid-friendly'],
+  dislikes: ['Nightlife', 'Long guided tours', 'Crowds', 'Early starts', 'Long drives', 'Seafood'],
+  age: ['Under 18', '18–34', '35–54', '55–69', '70+'],
+  budget: ['Group budget is fine', 'Budget-conscious', 'Mid-range', 'Happy to splurge'],
+};
+const SINGLE = { walk: 1, age: 1, budget: 1 };
+const EXCLUSIVE = { diet: 'No restrictions', allergies: 'No allergies' };
+const HARD_WALK = { 'Need a rest every ~30 min': 'Needs rest after ~30 min of walking', 'Short walks only': 'Short walks only', 'Wheelchair / step-free only': 'Wheelchair / step-free access only' };
+const REQUIRED = { walk: 'walking', diet: 'diet', allergies: 'allergies' };
+const PRESETS = { // demo "Fill example" answers
+  organizer: { sel: { age: '18–34', walk: 'All day, no problem', diet: ['No restrictions'], allergies: ['No allergies'], interests: ['Food & markets', 'Art & museums', 'History & culture'], budget: 'Group budget is fine' }, text: '' },
+  dad: { sel: { age: '55–69', walk: 'Need a rest every ~30 min', diet: ['No pork', 'No red meat', 'No alcohol'], allergies: ['No allergies'], interests: ['Relaxing pace', 'History & culture'], budget: 'Group budget is fine' }, text: 'I prefer a relaxed pace with time to sit down between sights.' },
+  mom: { sel: { age: '55–69', walk: 'A few hours with breaks', stairs: true, diet: ['No restrictions'], allergies: ['No allergies'], interests: ['Art & museums', 'Food & markets'], budget: 'Group budget is fine' }, text: 'My knee is bad since surgery, so stairs and steep hills are hard for me.' },
+  sister: { sel: { age: '18–34', walk: 'All day, no problem', diet: ['No pork', 'No alcohol'], allergies: ['No allergies'], interests: ['History & culture', 'Nature & outdoors'], dislikes: ['Nightlife'], budget: 'Group budget is fine' }, text: '' },
+  default: { sel: { age: '35–54', walk: 'All day, no problem', diet: ['No restrictions'], allergies: ['No allergies'], interests: ['History & culture', 'Food & markets'], budget: 'Group budget is fine' }, text: '' },
+};
+const blankSel = () => ({ walk: '', stairs: false, diet: [], allergies: [], interests: [], dislikes: [], age: '', budget: '' });
+const sel = t => t.sel || (t.sel = blankSel());
+const missing = t => Object.keys(REQUIRED).filter(k => !(SINGLE[k] ? sel(t)[k] : sel(t)[k].length));
+
+function profileFrom(t) { // structured choices -> the profile shape the itinerary AI already expects
+  const s = sel(t), hard = [];
+  const diet = s.diet.includes('No restrictions') ? ['No restrictions'] : [...s.diet];
+  diet.filter(d => d !== 'No restrictions').forEach(d => hard.push(d));
+  const allergies = s.allergies.includes('No allergies') ? ['None'] : s.allergies.map(a => 'Allergic to ' + a.toLowerCase());
+  allergies.filter(a => a !== 'None').forEach(a => hard.push(a));
+  const mobility = [];
+  if (s.walk) { mobility.push(HARD_WALK[s.walk] || s.walk); if (HARD_WALK[s.walk]) hard.push(HARD_WALK[s.walk]); }
+  if (s.stairs) { mobility.push('Avoid stairs & steep hills'); hard.push('Avoid stairs & steep hills'); }
+  return { profile: { Age: s.age ? [s.age] : [], Interests: [...s.interests], Dislikes: [...s.dislikes], Mobility: mobility, Diet: diet,
+    Allergies: allergies, Budget: s.budget ? [s.budget] : [], hard }, questions: [] };
+}
+function tog(key, val) {
+  const t = tvl()[S.active], s = sel(t);
+  if (key === 'stairs') s.stairs = !s.stairs;
+  else if (SINGLE[key]) s[key] = s[key] === val ? '' : val;
+  else if (val === EXCLUSIVE[key]) s[key] = s[key].includes(val) ? [] : [val];
+  else { s[key] = s[key].filter(v => v !== EXCLUSIVE[key]); s[key] = s[key].includes(val) ? s[key].filter(v => v !== val) : [...s[key], val]; }
+  t.confirmed = false; render();
+}
+
 function step3() {
-  const ts = tvl(), t = ts[S.active];
+  const ts = tvl(), t = ts[S.active], s = sel(t), miss = t.tried ? missing(t) : [];
   const tabs = ts.map((x, i) => `<button class="ptab ${i === S.active ? 'on' : ''}" onclick="S.active=${i};render()">${avatar(x.name, '', x.confirmed ? badge('a') : '')}${esc(x.name)}</button>`).join('');
-  let body = `<div class="people-tabs">${tabs}</div>
+  const on = (k, v) => k === 'stairs' ? s.stairs : SINGLE[k] ? s[k] === v : s[k].includes(v);
+  const chips = (k, list) => `<div class="opts">${list.map(v => `<button class="opt ${on(k, v) ? 'on' : ''}" onclick="tog('${k}', ${esc(JSON.stringify(v)).replace(/'/g, '&#39;')})">${on(k, v) ? ic('check', 13, 3) : ''}${esc(v)}</button>`).join('')}</div>`;
+  const sec = (k, title, icon, hint, extra = '') => `<div class="qsec ${miss.includes(k) ? 'missing' : ''}">
+    <div class="qhead">${ic(icon, 16)}<b>${title}</b>${REQUIRED[k] ? '<span class="req">Required</span>' : '<span class="optl">Optional</span>'}</div>
+    ${hint ? `<div class="qhint">${hint}</div>` : ''}${chips(k, OPT[k])}${extra}
+    ${miss.includes(k) ? '<div class="qerr">Please choose at least one so the plan is safe for you.</div>' : ''}</div>`;
+  const hard = profileFrom(t).profile.hard;
+  return `<div class="people-tabs">${tabs}</div>
   <div class="card" style="margin-top:8px">
-    <h2 class="h2">${t.organizer ? 'Tell us about you' : `Hi ${esc(t.name)}, tell us about you`}</h2>
-    <p class="lead">What you enjoy, how much you can walk, what you eat, any allergies and your budget, in your own words.</p>
-    <textarea id="ptext" placeholder="e.g. I love food markets and history. I don't eat pork, and I need a rest after about 30 minutes of walking." oninput="t_text(this.value); autoGrow(this)">${esc(t.text)}</textarea>
-    <div class="inline" style="margin-top:12px"><button class="ghost" style="flex:1" onclick="buildProfile()">${ic('spark', 16)} Build my profile</button>
-    <button class="demo-btn" onclick="fillProfile()">${ic('spark', 14)} Fill example</button></div></div>`;
-  if (t.profile) {
-    const p = t.profile.profile;
-    const icons = { Age: 'user', Interests: 'heart', Dislikes: 'thumbdown', Mobility: 'feet', Diet: 'food', Allergies: 'alert', Budget: 'wallet' };
-    const attrs = ['Age', 'Interests', 'Dislikes', 'Mobility', 'Diet', 'Allergies', 'Budget'].map(f =>
-      `<div class="attr"><span class="ai">${ic(icons[f], 16)}</span><div><div class="k">${f}</div>${p[f].length
-        ? p[f].map(v => `<span class="chip ${p.hard.includes(v) ? 'hard' : ''}">${p.hard.includes(v) ? ic('lock', 11, 2.5) : ''}${esc(v)}</span>`).join('')
-        : '<span class="unset">Not mentioned</span>'}</div></div>`).join('');
-    const qs = t.profile.questions.map((q, i) => `<div class="card q-card"><div class="q">${ic('help', 17)}<span>${esc(q)}</span></div>
-      <input type="text" placeholder="Your answer (optional)" value="${esc(t.answers[i] || '')}" oninput="S.travelers.filter(x=>x.accepted)[S.active].answers[${i}]=this.value"></div>`).join('');
-    body += `<div class="label"><span>How Liaison understood you</span></div>
-      <div class="card">${attrs}<div class="tiny muted" style="margin-top:8px;display:flex;gap:6px;align-items:center">${ic('lock', 12)} Red items are hard limits every plan must respect.</div></div>
-      ${qs ? `<div class="label"><span>A couple of quick questions</span></div>${qs}` : ''}
-      <button class="ghost ${t.confirmed ? 'done' : ''}" onclick="confirmProfile()" ${t.confirmed ? 'disabled' : ''}>${t.confirmed ? `${ic('check', 17, 2.5)} Profile confirmed` : 'Looks right, confirm profile'}</button>`;
-  }
-  return body;
+    <div class="card-head" style="align-items:flex-start"><h2 class="h2">${t.organizer ? 'Tell us about you' : `Hi ${esc(t.name)}, tell us about you`}</h2>
+      <button class="demo-btn" onclick="fillProfile()">${ic('spark', 14)} Fill example</button></div>
+    <p class="lead">Tap everything that applies. The required ones keep the plan safe for you.</p>
+    ${sec('walk', 'How much can you walk?', 'feet', '', `<div class="opts" style="margin-top:8px"><button class="opt ${s.stairs ? 'on' : ''}" onclick="tog('stairs')">${s.stairs ? ic('check', 13, 3) : ''}Avoid stairs &amp; steep hills</button></div>`)}
+    ${sec('diet', 'What do you eat?', 'food', 'Pick all that apply.')}
+    ${sec('allergies', 'Any food allergies?', 'alert', '')}
+    ${sec('interests', 'What do you enjoy?', 'heart', '')}
+    ${sec('dislikes', 'Anything to avoid?', 'thumbdown', '')}
+    ${sec('age', 'Age', 'user', '')}
+    ${sec('budget', 'Budget', 'wallet', '')}
+    <div class="qsec"><div class="qhead">${ic('help', 16)}<b>Anything else we should know?</b><span class="optl">Optional</span></div>
+      <textarea id="ptext" placeholder="e.g. a bad knee, a medical need, a must-see, or 'I try not to eat pork'. Liaison's AI reads this as you wrote it." oninput="t_text(this.value); autoGrow(this)">${esc(t.text)}</textarea></div>
+  </div>
+  ${hard.length ? `<div class="card"><div class="tiny muted" style="display:flex;gap:6px;align-items:center;margin-bottom:8px">${ic('lock', 12)} Every plan must respect these for you</div>${hard.map(h => `<span class="chip hard">${ic('lock', 11, 2.5)}${esc(h)}</span>`).join('')}</div>` : ''}
+  <button class="ghost ${t.confirmed ? 'done' : ''}" onclick="confirmProfile()" ${t.confirmed ? 'disabled' : ''}>${t.confirmed ? `${ic('check', 17, 2.5)} Profile confirmed` : 'Confirm my profile'}</button>`;
 }
 function foot3() {
   const ts = tvl(), n = ts.filter(x => x.confirmed).length, all = n === ts.length;
   return `<div class="hint">${all ? 'Everyone has confirmed. Ready when you are.' : `${n} of ${ts.length} travelers confirmed`}</div>
   <button class="primary sun" onclick="generate()" ${all ? '' : 'disabled'}>${ic('spark', 18)} Generate itinerary</button>`;
 }
-function t_text(v) { const t = tvl()[S.active]; t.text = v; t.confirmed = false; }
+function t_text(v) { const t = tvl()[S.active]; t.text = v; if (t.confirmed) { t.confirmed = false; render(); $('ptext')?.focus(); } }
 function fillProfile() {
-  const t = tvl()[S.active], ex = R.profile.examples;
-  t.text = t.organizer ? ex.organizer : (ex[t.name.toLowerCase()] || ex.default); render();
-}
-function buildProfile() {
-  const t = tvl()[S.active];
-  if (!t.text.trim()) return toast('Write a few words about yourself first.');
-  t.profile = aiParseProfile(t.text); t.answers = {}; t.confirmed = false;
-  log(`${esc(t.name)} profile built; hard constraints: ${esc(t.profile.profile.hard.join(', ') || 'none')}` +
-    (t.profile.questions.length ? `; ${t.profile.questions.length} ambiguity flag(s)` : ''));
-  render();
+  const t = tvl()[S.active], p = t.organizer ? PRESETS.organizer : (PRESETS[t.name.toLowerCase()] || PRESETS.default);
+  t.sel = { ...blankSel(), ...JSON.parse(JSON.stringify(p.sel)) }; t.text = p.text; t.confirmed = false; t.tried = false; render();
 }
 function confirmProfile() {
-  const t = tvl()[S.active];
-  Object.entries(t.answers).filter(([, a]) => a.trim()).forEach(([i, a]) => log(`${esc(t.name)} clarified "${esc(t.profile.questions[i])}" → ${esc(a)}`));
+  const t = tvl()[S.active], miss = missing(t);
+  if (miss.length) {
+    t.tried = true; render();
+    const el = document.querySelector('.qsec.missing'), main = $('main'); // bring the first missing question into view
+    if (el) main.scrollTo({ top: main.scrollTop + el.getBoundingClientRect().top - main.getBoundingClientRect().top - 12, behavior: 'smooth' });
+    return toast(`Please choose your ${miss.map(k => REQUIRED[k]).join(', ')}.`);
+  }
+  t.profile = profileFrom(t); t.answers = {}; t.tried = false;
+  log(`${esc(t.name)} profile built; hard constraints: ${esc(t.profile.profile.hard.join(', ') || 'none')}`);
   t.confirmed = true; log(`${esc(t.name)} confirmed profile`);
   const next = tvl().findIndex(x => !x.confirmed);
   if (next >= 0) { S.active = next; toast(`${t.organizer ? 'Your profile is' : t.name + "'s profile is"} confirmed. Now ${tvl()[next].name}.`); }

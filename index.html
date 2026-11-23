@@ -153,6 +153,23 @@
   .q-card .q { display: flex; gap: 8px; font-size: 14px; line-height: 1.4; margin-bottom: 10px; }
   .q-card .q .ic { color: #c07a0a; margin-top: 1px; }
 
+  /* structured profile options */
+  .qsec { padding: 14px 0; border-top: 1px solid var(--line); }
+  .qsec:first-of-type { border-top: none; padding-top: 6px; }
+  .qhead { display: flex; align-items: center; gap: 8px; font-size: 15px; color: var(--ink); }
+  .qhead .ic { color: var(--navy-2); }
+  .req, .optl { margin-left: auto; font-size: 11px; font-weight: 650; padding: 2px 8px; border-radius: 999px; letter-spacing: .02em; }
+  .req { background: var(--red-bg); color: var(--red); }
+  .optl { background: #f1f4f8; color: var(--muted); }
+  .qhint { font-size: 12.5px; color: var(--muted); margin: 4px 0 0 24px; }
+  .opts { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+  .opt { display: inline-flex; align-items: center; gap: 5px; padding: 8px 13px; border-radius: 999px; border: 1px solid #dbe1e8; background: #fff; font-size: 13.5px; font-weight: 550; color: var(--ink-2); transition: background .12s, border-color .12s; }
+  .opt.on { background: var(--navy); border-color: var(--navy); color: #fff; }
+  .qsec textarea { margin-top: 10px; min-height: 80px; }
+  .qsec.missing .qhead b { color: var(--red); }
+  .qsec.missing .opts .opt { border-color: var(--red-line); }
+  .qerr { font-size: 12.5px; color: var(--red); margin-top: 8px; }
+
   /* itinerary */
   .summary { border-radius: 22px; padding: 18px; color: #fff; margin-bottom: 14px; background: linear-gradient(150deg, #13294b 0%, #1f4f7a 70%, #2b6a8f 100%); box-shadow: 0 10px 26px #13294b33; }
   .summary .tiny { color: #ffd2b0; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; }
@@ -257,7 +274,7 @@
     <ol>
       <li>Tap <b>Use example</b>, then <b>Continue</b>.</li>
       <li>Add an email like <i>dad@test.com</i>, then continue.</li>
-      <li>For each traveler: <b>Fill example</b> → <b>Build my profile</b> → <b>Confirm</b>.</li>
+      <li>For each traveler: tap their options (or <b>Fill example</b>) → <b>Confirm my profile</b>.</li>
       <li><b>Generate itinerary</b> (live AI, up to a minute), then accept or reject items.</li>
     </ol>
   </div>
@@ -293,6 +310,6 @@
   <div id="toast"></div>
 </main>
 
-<script src="app.js?v=5"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>

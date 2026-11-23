@@ -1,8 +1,9 @@
 # Liaison prototype (itinerary generation connected to Claude)
 
 Only one AI step is real: **itinerary generation** (Step 3 -> Step 4). It sends the trip description and every
-confirmed traveler profile to Claude and shows the returned day-by-day plan. Trip summary, profile parsing and
-revision after a rejection are still simulated (`simulated_responses.json`).
+confirmed traveler profile to Claude and shows the returned day-by-day plan. Traveler profiles are collected with
+structured options (walking, diet, allergies, interests, age, budget) plus an optional "anything else" note, so no AI
+step is needed to read them. Trip summary and revision after a rejection are still simulated (`simulated_responses.json`).
 
 ## Set up (about 5 minutes)
 
@@ -18,7 +19,7 @@ You need **Python 3** (already on most Macs; check with `python3 --version`). No
 ## Happy path
 1. Step 1: click **Use example input** -> Continue.
 2. Step 2: click **Copy invite link**, then **Simulate: someone opens the link** a couple of times (or add emails). Continue.
-3. Step 3: for each traveler tab click **Fill example text** -> **Build my profile** -> **Confirm profile**.
+3. Step 3: for each traveler, tap their options (or click **Fill example**) -> **Confirm my profile**.
 4. Click **Generate itinerary**. The real call takes roughly 10 to 60 seconds. The header should read "itinerary: real AI (...)".
 
 ## Safety check (added in Lab 8)

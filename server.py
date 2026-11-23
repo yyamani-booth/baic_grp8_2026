@@ -172,6 +172,11 @@ class Handler(SimpleHTTPRequestHandler):
     def log_message(self, fmt, *args):
         pass  # keep terminal quiet
 
+    def end_headers(self):
+        # Always revalidate app files, so browsers never mix an old app.js with a new index.html after an update.
+        self.send_header("Cache-Control", "no-cache")
+        super().end_headers()
+
     def _json(self, code, obj):
         b = json.dumps(obj).encode()
         self.send_response(code)
